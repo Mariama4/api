@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+
 const {
   AuthenticationError,
   ForbiddenError
@@ -19,35 +20,27 @@ module.exports = {
     try {
       await models.Note.findOneAndRemove({ _id: id });
       return true;
-    } catch (err) {
+    } catch (error) {
       return false;
     }
   },
-  updateNote: async (parent, { content, id }, { models }) => {
-    try {
-      return await models.Note.findOneAndUpdate(
-        {
-          _id: id
-        },
-        {
-          $set: {
-            content
-          }
-        },
-        {
-          new: true
+  updateNote: async (parent, { id, content }, { models }) => {
+    return await models.Note.findOneAndUpdate(
+      { _id: id },
+      {
+        $set: {
+          content
         }
-      );
-    } catch (err) {
-      throw new Error('Error updating note');
-    }
+      },
+      { new: true }
+    );
   },
   signUp: async (parent, { username, email, password }, { models }) => {
-    // normalize email address
+    // нормализация email
     email = email.trim().toLowerCase();
-    // hash the password
+    // хёшируем пароль
     const hashed = await bcrypt.hash(password, 10);
-    // create the gravatar url
+    // создаем url-gravatar-изображения
     const avatar = gravatar(email);
     try {
       const user = await models.User.create({
@@ -56,17 +49,21 @@ module.exports = {
         avatar,
         password: hashed
       });
-
-      // create and return the json web token
-      return jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+      // созадем и возвращаем jwt
+      return jwt.sign(
+        {
+          id: user._id
+        },
+        process.env.JWT_SECRET
+      );
     } catch (err) {
-      // if there's a problem creating the account, throw an error
+      console.log(err);
       throw new Error('Error creating account');
     }
   },
   signIn: async (parent, { username, email, password }, { models }) => {
+    // нормализация email при наличии
     if (email) {
-      // normalize email address
       email = email.trim().toLowerCase();
     }
 
@@ -74,18 +71,24 @@ module.exports = {
       $or: [{ email }, { username }]
     });
 
-    // if no user is found, throw an authentication error
+    // если пользователь не найден, выбрасываем ошибку аутентификации
     if (!user) {
       throw new AuthenticationError('Error signing in');
     }
 
-    // if the passwords don't match, throw an authentication error
+    // если пароли не совпадают, выбрасываем ошибку аутентификации
     const valid = await bcrypt.compare(password, user.password);
+
     if (!valid) {
       throw new AuthenticationError('Error signing in');
     }
 
-    // create and return the json web token
-    return jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    // создаем и возвращаем токен jwt
+    return jwt.sign(
+      {
+        id: user._id
+      },
+      process.env.JWT_SECRET
+    );
   }
 };
