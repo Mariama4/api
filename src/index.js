@@ -36,9 +36,16 @@ const getUser = token => {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: () => {
+  context: ({ req }) => {
+    // Получаем токен пользователя из заголовка
+    const token = req.headers.authorization;
+    // Пытаемся извлечь извлечь пользователя с помощью токена
+    const user = getUser(token);
+    // Пока что будем выводить информацию о пользователе в консоль
+    console.log(user);
+
     // Добавление моделей БД в context
-    return { models };
+    return { models, user };
   }
 });
 

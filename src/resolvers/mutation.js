@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 const {
   AuthenticationError,
@@ -10,21 +11,60 @@ require('dotenv').config();
 const gravatar = require('../util/gravatar');
 
 module.exports = {
-  newNote: async (parent, args, { models }) => {
+  newNote: async (parent, args, { models, user }) => {
+    // Если в контексте нет пользователя, выбрасываем AuthenticationError
+    if (!user) {
+      throw new AuthenticationError('You must be signed in to create a note');
+    }
+
     return await models.Note.create({
       content: args.content,
-      author: 'Adam Scott'
+      // Ссылаемся на mongo id автора
+      author: mongoose.Types.ObjectId(user.id)
     });
   },
-  deleteNote: async (parent, { id }, { models }) => {
+  deleteNote: async (parent, { id }, { models, user }) => {
+    // Если в контексте нет пользователя, выбрасываем AuthenticationError
+    if (!user) {
+      throw new AuthenticationError('You must be signed in to delete a note');
+    }
+
+    // Находим заметку
+    const note = await models.Note.findOneById(id);
+    // Если владецлец заметки и текущий пользователь не совпадают, то выбразываем запрет на действие
+    if (note && String(note.author) !== user.id) {
+      throw new ForbiddenError('You don`t have permission to delete the note');
+    }
+
     try {
-      await models.Note.findOneAndRemove({ _id: id });
+      // Если все проверки проходят, удаляем заметку
+      await note.remove();
       return true;
-    } catch (error) {
+    } catch (err) {
+      // если в процессе возникает ошибка, возвращаем false
       return false;
     }
+    // DELETE ME IF ALL OK!
+    // try {
+    //   await models.Note.findOneAndRemove({ _id: id });
+    //   return true;
+    // } catch (error) {
+    //   return false;
+    // }
   },
-  updateNote: async (parent, { id, content }, { models }) => {
+  updateNote: async (parent, { id, content }, { models, user }) => {
+    // Если в контексте нет пользователя, выбрасываем AuthenticationError
+    if (!user) {
+      throw new AuthenticationError('You must be signed in to update a note');
+    }
+
+    // Находим заметку
+    const note = await models.Note.findOneById(id);
+    // Если владецлец заметки и текущий пользователь не совпадают, то выбразываем запрет на действие
+    if (note && String(note.author) !== user.id) {
+      throw new ForbiddenError('You don`t have permission to update the note');
+    }
+
     return await models.Note.findOneAndUpdate(
       { _id: id },
       {
