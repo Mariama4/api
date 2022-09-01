@@ -130,5 +130,56 @@ module.exports = {
       },
       process.env.JWT_SECRET
     );
+  },
+  toggleFavorite: async (parent, { id }, { models, user }) => {
+    // если пользователь не найден, выбрасываем ошибку аутентификации
+    if (!user) {
+      throw new AuthenticationError('Error signing in');
+    }
+    // Проверяем на валидный id
+    if (!mongoose.isValidObjectId(id)) {
+      throw new ForbiddenError('Incorrect id');
+    }
+    // проверяем отмечал ли пользователь заметку как избранную
+    let noteCheck = await models.Note.findById({ id });
+    const hasUser = noteCheck.favoritedBy.indexOf(user.id);
+
+    // если пользователь есть в списке, удаляем его оттуда и уменьшаем значение
+    // favoriteCount на 1
+    if (hasUser >= 0) {
+      return await models.Note.findOneAndUpdate(
+        id,
+        {
+          $pull: {
+            favoritedBy: mongoose.Types.ObjectId(user.id)
+          },
+          $inc: {
+            favoriteCount: -1
+          }
+        },
+        {
+          // устанавливаем new как true, чтобы вернуть обновленный документ
+          new: true
+        }
+      );
+    } else {
+      // если пользователя в списке нет, то добавляем его туда и увеличиваем
+      // значение favoriteCount на 1
+      return await models.Note.findOneAndUpdate(
+        id,
+        {
+          $push: {
+            favoritedBy: mongoose.Types.ObjectId(user.id)
+          },
+          $inc: {
+            favoriteCount: 1
+          }
+        },
+        {
+          // устанавливаем new как true, чтобы вернуть обновленный документ
+          new: true
+        }
+      );
+    }
   }
 };
