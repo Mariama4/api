@@ -141,7 +141,7 @@ module.exports = {
       throw new ForbiddenError('Incorrect id');
     }
     // проверяем отмечал ли пользователь заметку как избранную
-    let noteCheck = await models.Note.findById({ id });
+    let noteCheck = await models.Note.findById(id);
     const hasUser = noteCheck.favoritedBy.indexOf(user.id);
 
     // если пользователь есть в списке, удаляем его оттуда и уменьшаем значение
