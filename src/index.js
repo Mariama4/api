@@ -5,6 +5,10 @@ const { ApolloServer } = require('apollo-server-express');
 const typeDefs = require('./schema');
 const resolvers = require('./resolvers');
 const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const cors = require('cors');
+const depthLimit = require('graphql-depth-limit');
+const { createComplexityLimitRule } = require('graphql-validation-complexity');
 require('dotenv').config();
 
 const models = require('./models');
@@ -16,6 +20,9 @@ const port = process.env.PORT || 4000;
 const DB_HOST = process.env.DB_HOST;
 
 const app = express();
+// Добавляем промежуточное ПО в начало стека
+app.use(helmet());
+app.use(cors());
 // app.use(require('express-status-monitor')());
 // Подключаем БД
 db.connect(DB_HOST);
@@ -36,14 +43,12 @@ const getUser = token => {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  validationRules: [depthLimit(5), createComplexityLimitRule(1000)],
   context: ({ req }) => {
     // Получаем токен пользователя из заголовка
     const token = req.headers.authorization;
     // Пытаемся извлечь извлечь пользователя с помощью токена
     const user = getUser(token);
-    // Пока что будем выводить информацию о пользователе в консоль
-    console.log(user);
-
     // Добавление моделей БД в context
     return { models, user };
   }
