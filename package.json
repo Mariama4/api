@@ -9,6 +9,7 @@
     "final": "nodemon final/index.js",
     "seed": "node final/util/seed/index.js",
     "lint": "eslint \"src/**/*.js\""
+   
   },
   "repository": {
     "type": "git",
