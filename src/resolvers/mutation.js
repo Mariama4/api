@@ -135,12 +135,12 @@ module.exports = {
     // проверяем отмечал ли пользователь заметку как избранную
     let noteCheck = await models.Note.findById(id);
     const hasUser = noteCheck.favoritedBy.indexOf(user.id);
-
     // если пользователь есть в списке, удаляем его оттуда и уменьшаем значение
     // favoriteCount на 1
     if (hasUser >= 0) {
+      console.log(-1);
       return await models.Note.findOneAndUpdate(
-        id,
+        { _id: id },
         {
           $pull: {
             favoritedBy: mongoose.Types.ObjectId(user.id)
@@ -157,8 +157,9 @@ module.exports = {
     } else {
       // если пользователя в списке нет, то добавляем его туда и увеличиваем
       // значение favoriteCount на 1
+      console.log(+1);
       return await models.Note.findOneAndUpdate(
-        id,
+        { _id: id },
         {
           $push: {
             favoritedBy: mongoose.Types.ObjectId(user.id)
