@@ -16,11 +16,10 @@ module.exports = {
     if (!user) {
       throw new AuthenticationError('You must be signed in to create a note');
     }
-
     return await models.Note.create({
       content: args.content,
       // Ссылаемся на mongo id автора
-      author: mongoose.Types.ObjectId(user.id)
+      author: user.id
     });
   },
   deleteNote: async (parent, { id }, { models, user }) => {
@@ -30,7 +29,8 @@ module.exports = {
     }
 
     // Находим заметку
-    const note = await models.Note.findOneById(id);
+    const note = await models.Note.findById(id);
+
     // Если владецлец заметки и текущий пользователь не совпадают, то выбразываем запрет на действие
     if (note && String(note.author) !== user.id) {
       throw new ForbiddenError('You don`t have permission to delete the note');
@@ -44,13 +44,6 @@ module.exports = {
       // если в процессе возникает ошибка, возвращаем false
       return false;
     }
-    // DELETE ME IF ALL OK!
-    // try {
-    //   await models.Note.findOneAndRemove({ _id: id });
-    //   return true;
-    // } catch (error) {
-    //   return false;
-    // }
   },
   updateNote: async (parent, { id, content }, { models, user }) => {
     // Если в контексте нет пользователя, выбрасываем AuthenticationError
@@ -59,7 +52,7 @@ module.exports = {
     }
 
     // Находим заметку
-    const note = await models.Note.findOneById(id);
+    const note = await models.Note.findById(id);
     // Если владецлец заметки и текущий пользователь не совпадают, то выбразываем запрет на действие
     if (note && String(note.author) !== user.id) {
       throw new ForbiddenError('You don`t have permission to update the note');
@@ -97,7 +90,6 @@ module.exports = {
         process.env.JWT_SECRET
       );
     } catch (err) {
-      console.log(err);
       throw new Error('Error creating account');
     }
   },
